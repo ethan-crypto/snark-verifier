@@ -1,26 +1,20 @@
-use crate::{pcs::kzg::KzgSuccinctVerifyingKey, util::arithmetic::MultiMillerLoop};
+use crate::util::arithmetic::MultiMillerLoop;
 use std::marker::PhantomData;
 
-/// KZG deciding key.
 #[derive(Debug, Clone, Copy)]
+///
 pub struct KzgDecidingKey<M: MultiMillerLoop> {
-    svk: KzgSuccinctVerifyingKey<M::G1Affine>,
-    /// Generator on G2.
-    g2: M::G2Affine,
-    /// Generator to the trusted-setup secret on G2.
-    s_g2: M::G2Affine,
+    ///
+    pub g2: M::G2Affine,
+    ///
+    pub s_g2: M::G2Affine,
     _marker: PhantomData<M>,
 }
-
+///
 impl<M: MultiMillerLoop> KzgDecidingKey<M> {
-    /// Initialize a [`KzgDecidingKey`]
-    pub fn new(
-        svk: impl Into<KzgSuccinctVerifyingKey<M::G1Affine>>,
-        g2: M::G2Affine,
-        s_g2: M::G2Affine,
-    ) -> Self {
+    ///
+    pub fn new(g2: M::G2Affine, s_g2: M::G2Affine) -> Self {
         Self {
-            svk: svk.into(),
             g2,
             s_g2,
             _marker: PhantomData,
@@ -28,15 +22,9 @@ impl<M: MultiMillerLoop> KzgDecidingKey<M> {
     }
 }
 
-impl<M: MultiMillerLoop> From<(M::G1Affine, M::G2Affine, M::G2Affine)> for KzgDecidingKey<M> {
-    fn from((g1, g2, s_g2): (M::G1Affine, M::G2Affine, M::G2Affine)) -> KzgDecidingKey<M> {
-        KzgDecidingKey::new(g1, g2, s_g2)
-    }
-}
-
-impl<M: MultiMillerLoop> AsRef<KzgSuccinctVerifyingKey<M::G1Affine>> for KzgDecidingKey<M> {
-    fn as_ref(&self) -> &KzgSuccinctVerifyingKey<M::G1Affine> {
-        &self.svk
+impl<M: MultiMillerLoop> From<(M::G2Affine, M::G2Affine)> for KzgDecidingKey<M> {
+    fn from((g2, s_g2): (M::G2Affine, M::G2Affine)) -> KzgDecidingKey<M> {
+        KzgDecidingKey::new(g2, s_g2)
     }
 }
 
@@ -58,7 +46,6 @@ mod native {
     impl<M, MOS> AccumulationDecider<M::G1Affine, NativeLoader> for KzgAs<M, MOS>
     where
         M: MultiMillerLoop,
-        M::Scalar: PrimeField,
         MOS: Clone + Debug,
     {
         type DecidingKey = KzgDecidingKey<M>;
@@ -94,7 +81,7 @@ mod native {
 mod evm {
     use crate::{
         loader::{
-            evm::{loader::Value, EvmLoader, U256},
+            evm::{loader::Value, EvmLoader},
             LoadedScalar,
         },
         pcs::{
@@ -107,6 +94,7 @@ mod evm {
         },
         Error,
     };
+    use ethereum_types::U256;
     use std::{fmt::Debug, rc::Rc};
 
     impl<M, MOS> AccumulationDecider<M::G1Affine, Rc<EvmLoader>> for KzgAs<M, MOS>
@@ -127,10 +115,10 @@ mod evm {
                 let x = coordinates.x().to_repr();
                 let y = coordinates.y().to_repr();
                 (
-                    U256::try_from_le_slice(&x.as_ref()[32..]).unwrap(),
-                    U256::try_from_le_slice(&x.as_ref()[..32]).unwrap(),
-                    U256::try_from_le_slice(&y.as_ref()[32..]).unwrap(),
-                    U256::try_from_le_slice(&y.as_ref()[..32]).unwrap(),
+                    U256::from_little_endian(&x.as_ref()[32..]),
+                    U256::from_little_endian(&x.as_ref()[..32]),
+                    U256::from_little_endian(&y.as_ref()[32..]),
+                    U256::from_little_endian(&y.as_ref()[..32]),
                 )
             });
             loader.pairing(&lhs, g2, &rhs, minus_s_g2);
@@ -157,8 +145,14 @@ mod evm {
 
                 let hash_ptr = loader.keccak256(lhs[0].ptr(), lhs.len() * 0x80);
                 let challenge_ptr = loader.allocate(0x20);
-                let code = format!("mstore({challenge_ptr}, mod(mload({hash_ptr}), f_q))");
-                loader.code_mut().runtime_append(code);
+                loader
+                    .code_mut()
+                    .push(loader.scalar_modulus())
+                    .push(hash_ptr)
+                    .mload()
+                    .r#mod()
+                    .push(challenge_ptr)
+                    .mstore();
                 let challenge = loader.scalar(Value::Memory(challenge_ptr));
 
                 let powers_of_challenge = LoadedScalar::<M::Scalar>::powers(&challenge, lhs.len());

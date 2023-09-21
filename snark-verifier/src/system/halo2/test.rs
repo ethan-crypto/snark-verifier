@@ -201,21 +201,4 @@ macro_rules! halo2_create_snark {
     }};
 }
 
-macro_rules! halo2_native_verify {
-    (
-        $plonk_verifier:ty,
-        $params:expr,
-        $protocol:expr,
-        $instances:expr,
-        $transcript:expr,
-        $vk:expr
-    ) => {{
-        use halo2_proofs::poly::commitment::ParamsProver;
-        use $crate::verifier::SnarkVerifier;
-
-        let proof = <$plonk_verifier>::read_proof($vk, $protocol, $instances, $transcript).unwrap();
-        assert!(<$plonk_verifier>::verify($vk, $protocol, $instances, &proof).is_ok())
-    }};
-}
-
-pub(crate) use {halo2_create_snark, halo2_native_verify, halo2_prepare};
+pub(crate) use {halo2_create_snark, halo2_prepare};
