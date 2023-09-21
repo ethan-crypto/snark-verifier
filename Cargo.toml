@@ -1,5 +1,5 @@
 [package]
-name = "snark-verifier"
+name = "snark-verifier-bytecode"
 version = "0.1.0"
 edition = "2021"
 
