@@ -1,5 +1,4 @@
 [workspace]
 members = [
-    "snark-verifier-bytecode",
-    "snark-verifier-sdk"
+    "snark-verifier-bytecode"
 ]
