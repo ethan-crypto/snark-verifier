@@ -24,7 +24,7 @@ macro_rules! halo2_kzg_evm_verify {
         use halo2_proofs::poly::commitment::ParamsProver;
         use std::rc::Rc;
         use $crate::{
-            loader::evm::{compile_yul, deploy_and_call, encode_calldata, EvmLoader},
+            loader::evm::{deploy_and_call, encode_calldata, EvmLoader},
             system::halo2::{
                 test::kzg::{BITS, LIMBS},
                 transcript::evm::EvmTranscript,
@@ -34,7 +34,7 @@ macro_rules! halo2_kzg_evm_verify {
         };
 
         let loader = EvmLoader::new::<Fq, Fr>();
-        let deployment_code = {
+        let runtime_code = {
             let vk = ($params.get_g()[0].into(), $params.g2(), $params.s_g2()).into();
             let protocol = $protocol.loaded(&loader);
             let mut transcript = EvmTranscript::<_, Rc<EvmLoader>, _, _>::new(&loader);
@@ -48,16 +48,16 @@ macro_rules! halo2_kzg_evm_verify {
                 <$plonk_verifier>::read_proof(&vk, &protocol, &instances, &mut transcript).unwrap();
             <$plonk_verifier>::verify(&vk, &protocol, &instances, &proof).unwrap();
 
-            compile_yul(&loader.yul_code())
+            loader.runtime_code()
         };
 
         let calldata = encode_calldata($instances, &$proof);
-        let gas_cost = deploy_and_call(deployment_code.clone(), calldata.clone()).unwrap();
+        let gas_cost = deploy_and_call(runtime_code.clone(), calldata.clone()).unwrap();
         println!("Total gas cost: {}", gas_cost);
 
         let mut calldata = calldata;
         calldata[0] = calldata[0].wrapping_add(1);
-        assert!(deploy_and_call(deployment_code, calldata)
+        assert!(deploy_and_call(runtime_code, calldata)
             .unwrap_err()
             .starts_with("Contract call transaction reverts"))
     }};

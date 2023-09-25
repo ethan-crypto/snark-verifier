@@ -80,9 +80,11 @@ where
     fn squeeze_challenge(&mut self) -> Scalar {
         let len = if self.buf.len() == 0x20 {
             assert_eq!(self.loader.ptr(), self.buf.end());
-            let buf_end = self.buf.end();
-            let code = format!("mstore8({buf_end}, 1)");
-            self.loader.code_mut().runtime_append(code);
+            self.loader
+                .code_mut()
+                .push(U256::from(1))
+                .push(U256::from(self.buf.end()))
+                .mstore8();
             0x21
         } else {
             self.buf.len()
@@ -91,14 +93,17 @@ where
 
         let challenge_ptr = self.loader.allocate(0x20);
         let dup_hash_ptr = self.loader.allocate(0x20);
-        let code = format!(
-            "{{
-            let hash := mload({hash_ptr:#x})
-            mstore({challenge_ptr:#x}, mod(hash, f_q))
-            mstore({dup_hash_ptr:#x}, hash)
-        }}"
-        );
-        self.loader.code_mut().runtime_append(code);
+        self.loader
+            .code_mut()
+            .push(U256::from(hash_ptr))
+            .mload()
+            .push(self.loader.scalar_modulus)
+            .dup(1)
+            .r#mod()
+            .push(U256::from(challenge_ptr))
+            .mstore()
+            .push(U256::from(dup_hash_ptr))
+            .mstore();
 
         self.buf.reset(dup_hash_ptr);
         self.buf.extend(0x20);

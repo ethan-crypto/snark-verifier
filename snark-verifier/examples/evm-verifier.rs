@@ -23,7 +23,7 @@ use halo2_proofs::{
 use itertools::Itertools;
 use rand::{rngs::OsRng, RngCore};
 use snark_verifier::{
-    loader::evm::{self, deploy_and_call, encode_calldata, EvmLoader},
+    loader::evm::{deploy_and_call, encode_calldata, EvmLoader},
     pcs::kzg::{Gwc19, KzgAs},
     system::halo2::{compile, transcript::evm::EvmTranscript, Config},
     verifier::{self, SnarkVerifier},
@@ -225,7 +225,7 @@ fn gen_evm_verifier(
     let proof = PlonkVerifier::read_proof(&vk, &protocol, &instances, &mut transcript).unwrap();
     PlonkVerifier::verify(&vk, &protocol, &instances, &proof).unwrap();
 
-    evm::compile_yul(&loader.yul_code())
+    loader.deployment_code()
 }
 
 fn evm_verify(deployment_code: Vec<u8>, instances: Vec<Vec<Fr>>, proof: Vec<u8>) {
