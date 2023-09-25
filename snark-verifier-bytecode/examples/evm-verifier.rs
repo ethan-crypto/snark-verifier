@@ -22,7 +22,7 @@ use halo2_proofs::{
 };
 use itertools::Itertools;
 use rand::{rngs::OsRng, RngCore};
-use snark_verifier::{
+use snark_verifier_bytecode::{
     loader::evm::{deploy_and_call, encode_calldata, EvmLoader},
     pcs::kzg::{Gwc19, KzgAs},
     system::halo2::{compile, transcript::evm::EvmTranscript, Config},

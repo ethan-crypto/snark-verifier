@@ -15,7 +15,7 @@ use halo2_proofs::{
 };
 use itertools::Itertools;
 use rand::rngs::OsRng;
-use snark_verifier::{
+use snark_verifier_bytecode::{
     loader::{
         evm::{deploy_and_call, encode_calldata, EvmLoader},
         native::NativeLoader,
@@ -180,7 +180,7 @@ mod aggregation {
     };
     use itertools::Itertools;
     use rand::rngs::OsRng;
-    use snark_verifier::{
+    use snark_verifier_bytecode::{
         loader::{self, native::NativeLoader},
         pcs::{
             kzg::{KzgAccumulator, KzgSuccinctVerifyingKey, LimbsEncodingInstructions},
