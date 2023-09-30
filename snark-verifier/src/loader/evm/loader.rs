@@ -120,7 +120,7 @@ impl EvmLoader {
             }
             Value::Negated(value) => {
                 let v = self.push(&self.scalar(*value));
-                format!("sub(f_q, {v})")
+                format!("sub(f_q, mod({v}, f_q))")
             }
             Value::Sum(lhs, rhs) => {
                 let lhs = self.push(&self.scalar(*lhs));
